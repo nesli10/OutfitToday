@@ -14,19 +14,19 @@ export default function HomeScreen({ navigation }) {
 
   const getWeather = async () => {
   try {
-    // const { status } = await Location.requestForegroundPermissionsAsync();
-    // if (status !== 'granted') {
-    //   Alert.alert('Konum izni reddedildi');
-    //   setLoading(false);
-    //   return;
-    // }
+     const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+       Alert.alert('Konum izni reddedildi');
+      setLoading(false);
+      return;
+    }
 
-    // const location = await Location.getCurrentPositionAsync({});
-    // const { latitude, longitude } = location.coords;
+     const location = await Location.getCurrentPositionAsync({});
+     const { latitude, longitude } = location.coords;
 
     // Muğla koordinatları:
-    const latitude = 37.2153;
-    const longitude = 28.3636;
+    //const latitude = 37.2153;
+    //const longitude = 28.3636;
 
     const response = await fetch(
       `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&lang=tr&appid=${API_KEY}`
