@@ -1,86 +1,89 @@
-import React, { useState, useRef } from 'react';
-import { View, Image, StyleSheet, FlatList, Dimensions } from 'react-native';
-import outfitsData from './outfit.json';
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import outfits from './outfit';
 
-const windowWidth = Dimensions.get('window').width;
-const imageWidth = (windowWidth - 60) / 2;
-const ITEMS_PER_PAGE = 4;
+const { width } = Dimensions.get('window');
+const COLUMN_WIDTH = width / 2 - 16;
+
+const getSeasonFromTemp = (temp) => {
+  if (temp >= 25) return 'yaz';
+  if (temp >= 15) return 'ilkbahar';
+  if (temp >= 10) return 'sonbahar';
+  return 'kis';
+};
 
 export default function CombinationScreen({ route }) {
   const { weather } = route.params;
+  const [season, setSeason] = useState(null);
 
-  const temp = weather.main.temp;
+  useEffect(() => {
+    if (weather && weather.main && weather.main.temp !== undefined) {
+      setSeason(getSeasonFromTemp(weather.main.temp));
+    }
+  }, [weather]);
 
-  let sezon = 'ilkbahar';
-  if (temp >= 25) sezon = 'yaz';
-  else if (temp < 10) sezon = 'kis';
-  else if (temp >= 10 && temp < 20) sezon = 'sonbahar';
+  if (!season) return null;
 
-  const selectedOutfits = outfitsData[sezon] || outfitsData.ilkbahar;
+  const allOutfits = outfits[season] || [];
 
-  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
-  const onEndReachedCalledDuringMomentum = useRef(false);
+  
+  const leftColumn = [];
+  const rightColumn = [];
 
-  const visibleOutfits = selectedOutfits.slice(0, visibleCount);
+  
+  let leftHeight = 0;
+  let rightHeight = 0;
 
-  const loadMore = () => {
-    if (onEndReachedCalledDuringMomentum.current) return;
-    if (visibleCount >= selectedOutfits.length) return;
+  allOutfits.forEach((item, index) => {
+    const height = 200 + (index % 3) * 50; 
 
-    setVisibleCount(prev => Math.min(prev + ITEMS_PER_PAGE, selectedOutfits.length));
-    onEndReachedCalledDuringMomentum.current = true;
-  };
+    if (leftHeight <= rightHeight) {
+      leftColumn.push({ ...item, height });
+      leftHeight += height;
+    } else {
+      rightColumn.push({ ...item, height });
+      rightHeight += height;
+    }
+  });
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={visibleOutfits}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        showsVerticalScrollIndicator={false}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.1}
-        onMomentumScrollBegin={() => { onEndReachedCalledDuringMomentum.current = false; }}
-        contentContainerStyle={{ paddingBottom: 30 }}
-        renderItem={({ item, index }) => {
-          const isSecondRow = index >= 2;
-          return (
-            <View style={[styles.card, isSecondRow && { marginTop: 40 }]}>
-              <Image source={{ uri: item.uri }} style={styles.image} />
-            </View>
-          );
-        }}
-      />
-    </View>
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.column}>
+        {leftColumn.map((item) => (
+          <TouchableOpacity key={item.id} style={[styles.imageContainer, { height: item.height }]}>
+            <Image source={item.local} style={styles.image} />
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={styles.column}>
+        {rightColumn.map((item) => (
+          <TouchableOpacity key={item.id} style={[styles.imageContainer, { height: item.height }]}>
+            <Image source={item.local} style={styles.image} />
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingTop: 12,
+  },
+  column: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    backgroundColor: '#fafafa',
+    marginHorizontal: 6,
   },
-  row: {
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
+  imageContainer: {
+    marginBottom: 12,
+    borderRadius: 12,
     overflow: 'hidden',
-    width: imageWidth,
-    height: imageWidth * 1.4,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 5,
   },
   image: {
-    width: '100%',
+    width: COLUMN_WIDTH,
     height: '100%',
+    borderRadius: 12,
   },
 });
